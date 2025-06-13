@@ -4,7 +4,7 @@ import csv
 from PyPDF2 import PdfReader
 
 # === 1. Configuration ===
-pdf_folder = "path/to/your/pdf/folder"  # CHANGE THIS to your local path
+pdf_folder = "C:\Users\admin\Desktop\wolachat\wolachat"  # CHANGE THIS to your local path
 csv_output = "wolaytta_dictionary.csv"
 txt_output = "wolaytta_chunks.txt"
 
