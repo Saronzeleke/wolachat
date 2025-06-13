@@ -3,7 +3,7 @@ import re
 import csv
 from PyPDF2 import PdfReader
 
-pdf_folder = "C:\Users\admin\Desktop\wolachat\wolachat"  # CHANGE THIS to your local path
+pdf_folder = "C:\Users\admin\Desktop\wolachat\wolachat"  
 csv_output = "wolaytta_dictionary.csv"
 txt_output = "wolaytta_chunks.txt"
 
