@@ -7,7 +7,6 @@ pdf_folder = "C:\Users\admin\Desktop\wolachat\wolachat"
 csv_output = "wolaytta_dictionary.csv"
 txt_output = "wolaytta_chunks.txt"
 
-# === 2. Extract text from all PDFs ===
 all_text = ""
 for file in sorted(os.listdir(pdf_folder)):
     if file.endswith(".pdf"):
