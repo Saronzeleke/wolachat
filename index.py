@@ -40,8 +40,6 @@ for match in re.finditer(pattern, all_text, re.DOTALL):
             eng_example = eng_example.strip()
 
         entries.append([word, pos, meaning, wolaytta_example, eng_example])
-
-        # Create plain text chunk
         chunk = f"{word} ({pos}): {meaning}\nExample (Wolaytta): {wolaytta_example}"
         if eng_example:
             chunk += f"\nExample (English): {eng_example}"
