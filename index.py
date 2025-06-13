@@ -1,98 +1,67 @@
-import streamlit as st
-from sentence_transformers import SentenceTransformer
-import faiss
-import pandas as pd
-import openai
-import numpy as np
+import os
+import re
+import csv
+from PyPDF2 import PdfReader
 
-# Load dataset and index
-df = pd.read_csv("wolaytta_dataset.csv")
-index = faiss.read_index("wolaytta_faiss.index")
-model = SentenceTransformer("sentence-transformers/distiluse-base-multilingual-cased-v2")
+# === 1. Configuration ===
+pdf_folder = "path/to/your/pdf/folder"  # CHANGE THIS to your local path
+csv_output = "wolaytta_dictionary.csv"
+txt_output = "wolaytta_chunks.txt"
 
-# OpenAI API key
-openai.api_key = "YOUR_OPENAI_API_KEY"
+# === 2. Extract text from all PDFs ===
+all_text = ""
+for file in sorted(os.listdir(pdf_folder)):
+    if file.endswith(".pdf"):
+        pdf_path = os.path.join(pdf_folder, file)
+        reader = PdfReader(pdf_path)
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                all_text += text + "\n"
 
-# Improved context retrieval with chunking and threshold
-def retrieve_context(query, top_k=5, similarity_threshold=0.5):
-    query_vec = model.encode([query])
-    D, I = index.search(query_vec, k=top_k)
-    retrieved = []
-    for dist, idx in zip(D[0], I[0]):
-        if dist < similarity_threshold:
-            retrieved.append(df.iloc[idx]["wolaytta"])
-    return "\n".join(retrieved) if retrieved else None
+# === 3. Parse entries ===
+entries = []
+chunks = []
 
-def ask_gpt(messages):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=messages,
-        max_tokens=300,
-        temperature=0.7,
-        n=1,
-        stop=None,
-    )
-    return response.choices[0].message['content'].strip()
+pattern = r"(?P<word>\w+)%\d+\. (?P<pos>\w+)%(?P<content>.*?)((?=\n\w+%)|$)"
 
-def rag_gpt_reply(user_input, user_prompt):
-    context = retrieve_context(user_input)
-    if context:
-        system_content = f"Use the following Wolaytta phrases as context to answer questions:\n{context}"
-    else:
-        system_content = "No relevant Wolaytta context found. Answer based on your general knowledge."
+for match in re.finditer(pattern, all_text, re.DOTALL):
+    word = match.group("word").strip()
+    pos = match.group("pos").strip()
+    content = match.group("content").strip()
 
-    if user_prompt:
-        system_content += f"\n\nUser custom prompt:\n{user_prompt}"
+    # Split multiple senses in same entry
+    senses = content.split("►")
+    for sense in senses:
+        if not sense.strip():
+            continue
+        parts = sense.strip().split("●")
+        meaning = parts[0].strip()
+        wolaytta_example = parts[1].strip() if len(parts) > 1 else ""
+        eng_example = ""
+        if "%○" in wolaytta_example:
+            wolaytta_example, eng_example = wolaytta_example.split("%○", 1)
+            wolaytta_example = wolaytta_example.strip()
+            eng_example = eng_example.strip()
 
-    system_message = {"role": "system", "content": system_content}
-    conversation = st.session_state.messages + [system_message, {"role": "user", "content": user_input}]
+        # Add structured entry
+        entries.append([word, pos, meaning, wolaytta_example, eng_example])
 
-    reply = ask_gpt(conversation)
-    return reply
+        # Create plain text chunk
+        chunk = f"{word} ({pos}): {meaning}\nExample (Wolaytta): {wolaytta_example}"
+        if eng_example:
+            chunk += f"\nExample (English): {eng_example}"
+        chunks.append(chunk.strip())
 
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "system", "content": "You are a helpful assistant that answers questions about Wolaytta language using provided context."}
-    ]
-if "custom_prompt" not in st.session_state:
-    st.session_state.custom_prompt = ""
+# === 4. Save CSV ===
+with open(csv_output, "w", newline='', encoding="utf-8") as f:
+    writer = csv.writer(f)
+    writer.writerow(["Word", "Part of Speech", "Meaning", "Example (Wolaytta)", "Example (English)"])
+    writer.writerows(entries)
 
-st.title("Wolaytta RAG + GPT Chatbot 🤖")
+# === 5. Save TXT chunks ===
+with open(txt_output, "w", encoding="utf-8") as f:
+    for chunk in chunks:
+        f.write(chunk + "\n\n")
 
-user_prompt = st.text_area(
-    "Add your custom system prompt (optional):",
-    value=st.session_state.custom_prompt,
-    height=100,
-    help="This prompt guides the assistant's behavior during the conversation."
-)
-st.session_state.custom_prompt = user_prompt
-
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("Clear Chat"):
-        st.session_state.messages = [
-            {"role": "system", "content": "You are a helpful assistant that answers questions about Wolaytta language using provided context."}
-        ]
-        st.experimental_rerun()
-
-with col2:
-    if st.button("Reset Prompt"):
-        st.session_state.custom_prompt = ""
-        st.experimental_rerun()
-
-user_input = st.text_input("You:", key="input")
-
-if user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    response = rag_gpt_reply(user_input, st.session_state.custom_prompt)
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.session_state.input = ""
-
-for msg in st.session_state.messages[1:]:
-    if msg["role"] == "user":
-        st.markdown(f"**You:** {msg['content']}")
-    elif msg["role"] == "assistant":
-        st.markdown(f"**Bot:** {msg['content']}")
-    else:
-        st.markdown(f"*System:* {msg['content']}")
-#display coversation history 
+print(f"✅ Done! Saved {len(entries)} entries to CSV and {len(chunks)} chunks for RAG.")
