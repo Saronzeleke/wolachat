@@ -16,8 +16,7 @@ for file in sorted(os.listdir(pdf_folder)):
             text = page.extract_text()
             if text:
                 all_text += text + "\n"
-
-# === 3. Parse entries ===
+                
 entries = []
 chunks = []
 
