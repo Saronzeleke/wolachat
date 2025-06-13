@@ -49,10 +49,7 @@ with open(csv_output, "w", newline='', encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow(["Word", "Part of Speech", "Meaning", "Example (Wolaytta)", "Example (English)"])
     writer.writerows(entries)
-
-# === 5. Save TXT chunks ===
 with open(txt_output, "w", encoding="utf-8") as f:
     for chunk in chunks:
         f.write(chunk + "\n\n")
-
 print(f"✅ Done! Saved {len(entries)} entries to CSV and {len(chunks)} chunks for RAG.")
