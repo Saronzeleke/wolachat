@@ -39,7 +39,6 @@ for match in re.finditer(pattern, all_text, re.DOTALL):
             wolaytta_example = wolaytta_example.strip()
             eng_example = eng_example.strip()
 
-        # Add structured entry
         entries.append([word, pos, meaning, wolaytta_example, eng_example])
 
         # Create plain text chunk
