@@ -45,7 +45,6 @@ for match in re.finditer(pattern, all_text, re.DOTALL):
             chunk += f"\nExample (English): {eng_example}"
         chunks.append(chunk.strip())
 
-# === 4. Save CSV ===
 with open(csv_output, "w", newline='', encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow(["Word", "Part of Speech", "Meaning", "Example (Wolaytta)", "Example (English)"])
