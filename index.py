@@ -26,8 +26,6 @@ for match in re.finditer(pattern, all_text, re.DOTALL):
     word = match.group("word").strip()
     pos = match.group("pos").strip()
     content = match.group("content").strip()
-
-    # Split multiple senses in same entry
     senses = content.split("►")
     for sense in senses:
         if not sense.strip():
